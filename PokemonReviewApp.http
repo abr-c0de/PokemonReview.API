@@ -1,0 +1,6 @@
+@PokemonReviewApp_HostAddress = http://localhost:5216
+
+GET {{PokemonReviewApp_HostAddress}}/api/Pokemon 
+Accept: application/json
+
+###
