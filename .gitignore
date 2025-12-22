@@ -7,12 +7,16 @@
 *.userosscache
 *.sln.docstates
 
+# Ignore Visual Studio user-specific project files
+*.csproj.user
+
 # ==============================
 # Build Folders
 # ==============================
 bin/
 obj/
 out/
+publish/
 
 # ==============================
 # Rider
@@ -31,6 +35,10 @@ out/
 *.nupkg
 *.snupkg
 
+# Local development settings
+appsettings.Development.json
+secrets.json
+
 # ==============================
 # EF Core / Migrations
 # ==============================
@@ -44,11 +52,6 @@ Migrations/
 # ==============================
 *.mdf
 *.ldf
-
-# ==============================
-# User Secrets
-# ==============================
-secrets.json
 
 # ==============================
 # Node / Frontend (if you add React later)
