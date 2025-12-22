@@ -1,9 +1,9 @@
-﻿🐱 PokemonReviewApp
+﻿# 🐱 PokemonReviewApp
 
 A RESTful Web API built with ASP.NET Core (.NET 8), Entity Framework Core, and SQL Server.
 This project demonstrates clean backend architecture, including DTOs, Repositories, AutoMapper, and proper database relationships.
 
-🚀 Tech Stack
+## 🚀 Tech Stack
 
 .NET 8
 
@@ -17,7 +17,7 @@ AutoMapper
 
 Swagger / OpenAPI
 
-✨ Features
+## ✨ Features
 
 Full CRUD operations
 
@@ -31,8 +31,9 @@ AutoMapper for clean mapping
 
 Swagger UI for testing
 
-🧩 Domain Model
-Entities
+## 🧩 Domain Model
+
+### Entities
 
 Pokemon
 
@@ -44,13 +45,13 @@ Review
 
 Reviewer
 
-Join Tables
+### Join Tables
 
 PokemonCategories (Pokemon ↔ Category)
 
 PokemonOrders (Pokemon ↔ Order)
 
-🔗 Relationships
+## 🔗 Relationships
 
 Pokemon → Reviews (1-to-Many)
 
@@ -60,54 +61,60 @@ Pokemon ↔ Category (Many-to-Many)
 
 Pokemon ↔ Order (Many-to-Many)
 
-📐 ER Diagram
+## 📐 ER Diagram
 
+```text
 Pokemon ─────< Review >───── Reviewer
    │
    ├──< PokemonCategory >── Category
    │
    └──< PokemonOrder >──── Order
+```
 
 
 
-🔄 API Endpoints
 
-| Method | Endpoint               | Description            |
-| ------ | -----------------      | -----------------      |
-| GET    | /api/pokemon           |      Get all Pokémon   |
-| GET    | /api/pokemon/{id}      |      Get Pokémon by ID |
-| GET    | /api/pokemon {ownerId} | Get Pokémon by OwnerID |
-| POST   | /api/pokemon           |      Create Pokémon    |
-| PUT    | /api/pokemon/{id}      |      Update Pokémon    |
-| DELETE | /api/pokemon/{id}      |      Delete Pokémon    |
+## 🔄 API Endpoints
+
+| Method | Endpoint              | Description            |
+| ------ | -----------------     | -----------------      |
+| GET    | /api/pokemon          |      Get all Pokémon   |
+| GET    | /api/pokemon/{id}     |      Get Pokémon by ID |
+| GET    | /api/pokemon{ownerId} | Get Pokémon by OwnerID |
+| POST   | /api/pokemon          |      Create Pokémon    |
+| PUT    | /api/pokemon/{id}     |      Update Pokémon    |
+| DELETE | /api/pokemon/{id}     |      Delete Pokémon    |
 
 
-🔄 AutoMapper
+## 🔄 AutoMapper
 
 AutoMapper is used to map Entities ↔ DTOs, reducing boilerplate code and keeping controllers clean.
 
 
-🔐 Configuration
+## 🔐 Configuration
 
 Connection strings are stored securely using User Secrets.
 
+```bash
 dotnet user-secrets init
 dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Your_SQL_Server_Connection_String"
+```
 
-
-🧪 Swagger
+## 🧪 Swagger
 
 Test endpoints via Swagger:
 
 https://localhost:{port}/swagger
 
 
-🛠 Database Setup
+## 🛠 Database Setup
 
+```bash
 dotnet ef migrations add InitialCreate
 dotnet ef database update
+```
 
 
-👨‍💻 Author
+## 👨‍💻 Author
 
 PokemonReviewApp — A portfolio-ready backend API built with ASP.NET Core & EF Core.
