@@ -1,7 +1,7 @@
 ﻿# 🐱 PokemonReviewApp
 
 A RESTful Web API built with ASP.NET Core (.NET 8), Entity Framework Core, and SQL Server.
-This project demonstrates clean backend architecture, including DTOs, Repositories, AutoMapper, and proper database relationships.
+This project demonstrates clean backend architecture, including DTOs, Repositories, AutoMapper, Asynchronous Programming and proper database relationships.
 
 ## 🚀 Tech Stack
 
@@ -30,6 +30,10 @@ AutoMapper for clean mapping
 1-to-Many & Many-to-Many relationships
 
 Swagger UI for testing
+
+Asynchronous Programming
+
+Clean Code
 
 ## 🧩 Domain Model
 
