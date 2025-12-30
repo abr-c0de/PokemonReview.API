@@ -24,12 +24,12 @@ namespace PokemonReviewApp.Controllers
         //GET
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public ActionResult<IEnumerable<OwnerDto>> GetOwners()
+        public async Task<ActionResult<IEnumerable<OwnerDto>>> GetOwners()
         {
-            var ownersDb = ownerRepository.GetOwners();
+            var ownersDb = await ownerRepository.GetOwnersAsync();
 
-            if (ownersDb == null || !ownersDb.Any()) return NoContent();
+            if (!ownersDb.Any())
+                return Ok(new List<OwnerDto>());
 
             var owners = mapper.Map<List<OwnerDto>>(ownersDb);
 
@@ -40,44 +40,48 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
-        public ActionResult<OwnerDto> GetOwner(int ownerId)
+        public async Task<ActionResult<OwnerDto>> GetOwner(int ownerId)
         {
-            var ownerDb = ownerRepository.GetOwner(ownerId);
+            var ownerDb = await ownerRepository.GetOwnerAsync(ownerId);
 
-            if (ownerDb == null) return NotFound();
+            if (ownerDb == null)
+                return NotFound();
 
             var owner = mapper.Map<OwnerDto>(ownerDb);
 
             return Ok(owner);
         }
 
-        [HttpGet("/OwnerByPokemon/{pokeId}")]
+        [HttpGet("OwnerByPokemon/{pokeId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public ActionResult<IEnumerable<OwnerDto>> GetOwnersOfPokemon(int pokeId)
+        public async Task<ActionResult<IEnumerable<OwnerDto>>> GetOwnersOfPokemon(int pokeId)
         {
-            var ownersDb = ownerRepository.GetOwnerOfPokemon(pokeId);
+            var ownersDb = await ownerRepository.GetOwnerOfPokemonAsync(pokeId);
 
-            if (ownersDb == null || !ownersDb.Any()) return NoContent();
+            if (!ownersDb.Any())
+                return Ok(new List<OwnerDto>());
 
             var owners = mapper.Map<List<OwnerDto>>(ownersDb);
 
             return Ok(owners);
         }
 
-        [HttpGet("/PokemonByOwner/{ownerId}")]
+        [HttpGet("PokemonByOwner/{ownerId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public ActionResult<IEnumerable<PokemonDto>> GetPokemonByOwner(int ownerId)
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<ActionResult<IEnumerable<PokemonDto>>> GetPokemonByOwner(int ownerId)
         {
-            var ownersDb = ownerRepository.GetPokemonByOwner(ownerId);
+            var ownersDb = await ownerRepository.GetPokemonByOwnerAsync(ownerId);
 
-            if (ownersDb == null || !ownersDb.Any()) return NoContent();
+            if (!ownersDb.Any())
+                return Ok(new List<PokemonDto>());
 
-            var owners = mapper.Map<List<PokemonDto>>(ownersDb);
+            var pokemons = mapper.Map<List<PokemonDto>>(ownersDb);
 
-            return Ok(owners);
+            return Ok(pokemons);
         }
+
 
         //POST
         [HttpPost]
@@ -85,24 +89,28 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult CreateOwner([FromBody] OwnerCreateDto ownerCreate)
+        public async Task<IActionResult> CreateOwner([FromBody] OwnerCreateDto ownerCreate)
         {
+            if (ownerCreate == null)
+                return BadRequest("Owner data is required");
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var normalizedName = ownerCreate.Name.Trim().ToUpper();
+            if (string.IsNullOrWhiteSpace(ownerCreate.Name))
+                return BadRequest("Owner name is required.");
 
-            var existingOwner = ownerRepository.GetOwners()
-                                               .FirstOrDefault(o => o.Name.ToUpper() == normalizedName);
+            var existingOwner = await ownerRepository.OwnerExistByNameAsync(ownerCreate.Name.Trim().ToUpper());
 
-            if (existingOwner != null) return Conflict(" Owner already exists. ");
+            if (existingOwner)
+                return Conflict(" Owner already exists. ");
 
             var mappedOwner = mapper.Map<Owner>(ownerCreate);
 
-            var created = ownerRepository.CreateOwner(mappedOwner);
+            var created = await ownerRepository.CreateOwnerAsync(mappedOwner);
 
-            if (!created) return StatusCode(500, "Something went wrong while saving. ");
+            if (!created)
+                return StatusCode(500, "Something went wrong while saving. ");
 
             var responseDto = mapper.Map<OwnerDto>(mappedOwner);
 
@@ -119,7 +127,7 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult UpdateCountry(int ownerId, [FromBody] OwnerUpdateDto updatedOwner)
+        public async Task<IActionResult> UpdateOwner(int ownerId, [FromBody] OwnerDto updatedOwner)
         {
             if (updatedOwner == null)
                 return BadRequest("Owner data is required");
@@ -130,11 +138,12 @@ namespace PokemonReviewApp.Controllers
             if (ownerId != updatedOwner.Id)
                 return BadRequest("Route ID and body ID do not match");
 
-            if (!ownerRepository.OwnerExist(ownerId))
+            if (!await ownerRepository.OwnerExistAsync(ownerId))
                 return NotFound();
             var mappedOwner = mapper.Map<Owner>(updatedOwner);
 
-            if (!ownerRepository.UpdateOwner(mappedOwner)) return StatusCode(500, "Something went wrong while saving");
+            if (!await ownerRepository.UpdateOwnerAsync(mappedOwner))
+                return StatusCode(500, "Something went wrong while saving");
 
             return NoContent();
         }
@@ -144,14 +153,15 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult DeleteOwner(int ownerId)
+        public async Task<IActionResult> DeleteOwner(int ownerId)
         {
 
-            var ownerToDelete = ownerRepository.GetOwner(ownerId);
+            var ownerToDelete = await ownerRepository.GetOwnerAsync(ownerId);
 
-            if (ownerToDelete == null) return NotFound();
+            if (ownerToDelete == null)
+                return NotFound();
 
-            if (!ownerRepository.DeleteOwner(ownerToDelete))
+            if (!await ownerRepository.DeleteOwnerAsync(ownerToDelete))
                 return StatusCode(500, "Something went wrong while deleting");
 
             return NoContent();

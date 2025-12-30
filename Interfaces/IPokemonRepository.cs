@@ -4,15 +4,14 @@ namespace PokemonReviewApp.Interfaces
 {
     public interface IPokemonRepository
     {
-        ICollection<Pokemon> GetPokemons();
-        Pokemon GetPokemon(int id);
-        Pokemon GetPokemonByName(string name);
-        decimal GetPokemonRating(int Pokeid);
-        bool PokemonExists(int Pokeid);
-        bool CreatePokemon(Pokemon pokemon);
-        bool UpdatePokemon(Pokemon pokemon);
-        bool DeletePokemon(Pokemon pokemon);
-        bool Save();
+        Task<List<Pokemon>> GetPokemonsAsync();
+        Task<Pokemon?> GetPokemonAsync(int id);
+        Task<Pokemon?> GetPokemonByNameAsync(string name);
+        Task<decimal> GetPokemonRatingAsync(int Pokeid);
+        Task<bool> PokemonExistsAsync(int Pokeid);
+        Task<bool> PokemonExistByNameAsync(string normalizedName);
+        Task<bool> CreatePokemonAsync(Pokemon pokemon);
+        Task<bool> UpdatePokemonAsync(Pokemon pokemon);
+        Task<bool> DeletePokemonAsync(Pokemon pokemon);
     }
 }
-

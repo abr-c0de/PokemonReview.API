@@ -12,25 +12,25 @@ namespace PokemonReviewApp.Controllers
     [ApiController]
     public class PokemonController : ControllerBase
     {
-        private readonly IPokemonRepository _PokemonRepository;
+        private readonly IPokemonRepository _pokemonRepository;
         private readonly IMapper mapper;
 
         public PokemonController(IPokemonRepository pokemonRepository, IMapper mapper)
         {
-            _PokemonRepository = pokemonRepository;
+            _pokemonRepository = pokemonRepository;
             this.mapper = mapper;
         }
 
         //GET
 
         [HttpGet]
-        [ProducesResponseType(200, Type = typeof(IEnumerable<Pokemon>))]
-        public IActionResult GetPokemons()
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<IEnumerable<PokemonDto>>> GetPokemons()
         {
-            var pokemons = mapper.Map<List<PokemonDto>>(_PokemonRepository.GetPokemons());
+            var pokemons = mapper.Map<List<PokemonDto>>(await _pokemonRepository.GetPokemonsAsync());
 
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            if (!pokemons.Any())
+                return Ok(new List<PokemonDto>());
 
             return Ok(pokemons);
         }
@@ -39,14 +39,14 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
-        public ActionResult<PokemonDto> GetPokemon(int pokeId)
+        public async Task<ActionResult<PokemonDto>> GetPokemon(int pokeId)
         {
-            if (!_PokemonRepository.PokemonExists(pokeId)) return NotFound();
+            var pokemonDb = await _pokemonRepository.GetPokemonAsync(pokeId);
 
-            var pokemon = mapper.Map<PokemonDto>(_PokemonRepository.GetPokemon(pokeId));
+            if (pokemonDb == null)
+                return NotFound();
 
-            if (!ModelState.IsValid)
-                return BadRequest(ModelState);
+            var pokemon = mapper.Map<PokemonDto>(pokemonDb);
 
             return Ok(pokemon);
 
@@ -57,32 +57,38 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
 
-        public ActionResult<PokemonDto> GetPokemonByName(string name)
+        public async Task<ActionResult<PokemonDto>> GetPokemonByName(string name)
         {
-            var pokemonEntity = _PokemonRepository.GetPokemonByName(name);
+            if (name == null)
+                return NotFound();
 
-            if (pokemonEntity == null) return NotFound();
+            var pokemonEntity = await _pokemonRepository.GetPokemonByNameAsync(name.Trim().ToUpper());
+
+            if (pokemonEntity == null)
+                return NotFound();
 
             var poke = mapper.Map<PokemonDto>(pokemonEntity);
 
             return Ok(poke);
         }
 
+
         [HttpGet("{pokeId}/rating")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
 
-        public ActionResult<Pokemon> GetPokemonRating(int pokeId)
+        public async Task<ActionResult<Pokemon>> GetPokemonRating(int pokeId)
         {
-            if (!_PokemonRepository.PokemonExists(pokeId)) return NotFound();
+            var pokemon = await _pokemonRepository.GetPokemonAsync(pokeId);
 
-            var rating = _PokemonRepository.GetPokemonRating(pokeId);
+            if (pokemon == null)
+                return NotFound();
 
-            if(!ModelState.IsValid) 
-                 return BadRequest(ModelState);
+            var rating = await _pokemonRepository.GetPokemonRatingAsync(pokeId); 
 
             return Ok(rating);
         }
+
 
         //POST
         [HttpPost]
@@ -90,24 +96,28 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult CreatePokemon([FromBody] PokemonDto pokemonCreate)
+        public async Task<IActionResult> CreatePokemon([FromBody] PokemonCreateDto pokemonCreate)
         {
+            if (pokemonCreate == null)
+                return BadRequest("Pokemon data is required");
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var normalizedName = pokemonCreate.Name.Trim().ToUpper();
+            if (string.IsNullOrWhiteSpace(pokemonCreate.Name))
+                return BadRequest("Pokemon name is required.");
 
-            var existingPokemon = _PokemonRepository.GetPokemons()
-                                               .FirstOrDefault(p => p.Name.ToUpper() == normalizedName);
+            var existingPokemon = await _pokemonRepository.PokemonExistByNameAsync(pokemonCreate.Name.Trim().ToUpper());
 
-            if (existingPokemon != null) return Conflict(" Pokemon already exists. ");
+            if (existingPokemon)
+                return Conflict(" Pokemon already exists. ");
 
             var mappedPokemon = mapper.Map<Pokemon>(pokemonCreate);
 
-            var created = _PokemonRepository.CreatePokemon(mappedPokemon);
+            var created = await _pokemonRepository.CreatePokemonAsync(mappedPokemon);
 
-            if (!created) return StatusCode(500, "Something went wrong while saving. ");
+            if (!created)
+                return StatusCode(500, "Something went wrong while saving. ");
 
             var responseDto = mapper.Map<PokemonDto>(mappedPokemon);
 
@@ -124,7 +134,7 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult UpdatePokemon(int pokeId, [FromBody] PokemonDto updatedPokemon)
+        public async Task<IActionResult> UpdatePokemon(int pokeId, [FromBody] PokemonDto updatedPokemon)
         {
             if (updatedPokemon == null)
                 return BadRequest("Pokemon data is required");
@@ -135,11 +145,13 @@ namespace PokemonReviewApp.Controllers
             if (pokeId != updatedPokemon.Id)
                 return BadRequest("Route ID and body ID do not match");
 
-            if (!_PokemonRepository.PokemonExists(pokeId))
+            if (!await _pokemonRepository.PokemonExistsAsync(pokeId))
                 return NotFound();
+
             var mappedPokemon = mapper.Map<Pokemon>(updatedPokemon);
 
-            if (!_PokemonRepository.UpdatePokemon(mappedPokemon)) return StatusCode(500, "Something went wrong while saving");
+            if (!await _pokemonRepository.UpdatePokemonAsync(mappedPokemon)) 
+                return StatusCode(500, "Something went wrong while saving");
 
             return NoContent();
         }
@@ -149,14 +161,15 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult DeletePokemon(int pokeId)
+        public async Task<IActionResult> DeletePokemon(int pokeId)
         {
 
-            var pokemonToDelete = _PokemonRepository.GetPokemon(pokeId);
+            var pokemonToDelete = await _pokemonRepository.GetPokemonAsync(pokeId);
 
-            if (pokemonToDelete == null) return NotFound();
+            if (pokemonToDelete == null)
+                return NotFound();
 
-            if (!_PokemonRepository.DeletePokemon(pokemonToDelete))
+            if (!await _pokemonRepository.DeletePokemonAsync(pokemonToDelete))
                 return StatusCode(500, "Something went wrong while deleting");
 
             return NoContent();

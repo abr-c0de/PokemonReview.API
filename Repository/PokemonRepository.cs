@@ -1,6 +1,8 @@
-﻿using PokemonReviewApp.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PokemonReviewApp.Data;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
+using System;
 
 namespace PokemonReviewApp.Repository
 {
@@ -14,64 +16,79 @@ namespace PokemonReviewApp.Repository
 
 
         //GET
-        public Pokemon GetPokemon(int id)
+        public async Task<Pokemon?> GetPokemonAsync(int id)
         {
-            return _context.Pokemons.FirstOrDefault(p => p.Id == id);
+            return await _context.Pokemons
+                                 .AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
         }
 
-        public Pokemon GetPokemonByName(string? name)
+        public async Task<Pokemon?> GetPokemonByNameAsync(string? name)
         {
             if (string.IsNullOrWhiteSpace(name))
                 return null;
 
-            return _context.Pokemons.FirstOrDefault(p => p.Name == name);
+            return await _context.Pokemons
+                                 .AsNoTracking().FirstOrDefaultAsync(p => p.Name.Trim().ToUpper() == name);
         }
 
-        public decimal GetPokemonRating(int Pokeid)
+        public async Task<decimal> GetPokemonRatingAsync(int Pokeid)
         {
-            var review = _context.Reviews
-                                 .Where(p => p.PokemonId == Pokeid);
+            var reviews = await _context.Reviews
+                                       .AsNoTracking()
+                                       .Where(p => p.PokemonId == Pokeid)
+                                       .ToListAsync();
 
-            if(review.Count() <= 0) return 0;
+            if (!reviews.Any()) return 0;
 
-            return ((decimal)review.Sum(r => r.Rating) / review.Count());
+            return ((decimal)reviews.Sum(r => r.Rating) / reviews.Count());
         }
 
-        public ICollection<Pokemon> GetPokemons()
+        public async Task<List<Pokemon>> GetPokemonsAsync()
         {
-            return _context.Pokemons.ToList();
+            return await _context.Pokemons
+                                 .AsNoTracking().ToListAsync();
         }
 
-        public bool PokemonExists(int Pokeid)
+        public async Task<bool> PokemonExistsAsync(int Pokeid)
         {
-            return _context.Pokemons.Any(p => p.Id == Pokeid);
+            return await _context.Pokemons
+                                 .AsNoTracking().AnyAsync(p => p.Id == Pokeid);
+        }
+
+        public async Task<bool> PokemonExistByNameAsync(string normalizedName)
+        {
+
+            return await _context.Pokemons
+                                 .AsNoTracking()
+                                 .AnyAsync(p => p.Name != null && p.Name.Trim().ToUpper() == normalizedName);
         }
 
         //POST
-        public bool CreatePokemon(Pokemon pokemon)
+        public async Task<bool> CreatePokemonAsync(Pokemon pokemon)
         {
-            _context.Add(pokemon);
-            return Save();
+            await _context.Pokemons.AddAsync(pokemon);
+            return await SaveAsync();
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            var saved = _context.SaveChanges();
+            var saved = await _context.SaveChangesAsync();
             return saved > 0;
         }
 
         //PUT
-        public bool UpdatePokemon(Pokemon pokemon)
+        public async Task<bool> UpdatePokemonAsync(Pokemon pokemon)
         {
-            _context.Update(pokemon);
-            return Save();
+            _context.Pokemons.Update(pokemon);
+            return await SaveAsync();
         }
 
         //DELETE 
-        public bool DeletePokemon(Pokemon pokemon)
+        public async Task<bool> DeletePokemonAsync(Pokemon pokemon)
         {
-            _context.Remove(pokemon);
-            return Save();
+            _context.Pokemons.Attach(pokemon);
+            _context.Pokemons.Remove(pokemon);
+            return await SaveAsync();
         }
     }
 }

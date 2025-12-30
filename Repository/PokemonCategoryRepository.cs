@@ -1,4 +1,5 @@
-﻿using PokemonReviewApp.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PokemonReviewApp.Data;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
 
@@ -11,21 +12,22 @@ namespace PokemonReviewApp.Repository
         {
             this.context = context;
         }
-        public bool AddPokemonCategory(PokemonCategory P_C)
+        public async Task<bool> AddPokemonCategoryAsync(PokemonCategory P_C)
         {
-            context.Add(P_C);
-            return Save();
+            await context.PokemonCategories.AddAsync(P_C);
+            return await SaveAsync();
         }
 
-        public bool Exist(int PokemonId, int CategoryId)
+        public async Task<bool> ExistAsync(int PokemonId, int CategoryId)
         {
-            return context.PokemonCategories
-                          .Any(pc => pc.PokemonId == PokemonId && pc.CategoryId == CategoryId);
+            return await context.PokemonCategories
+                                .AsNoTracking()
+                                .AnyAsync(pc => pc.PokemonId == PokemonId && pc.CategoryId == CategoryId);
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            var saved = context.SaveChanges();
+            var saved = await context.SaveChangesAsync();
 
             return saved > 0;
         }

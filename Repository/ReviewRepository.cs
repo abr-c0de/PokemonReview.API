@@ -1,4 +1,5 @@
-﻿using PokemonReviewApp.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PokemonReviewApp.Data;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
 
@@ -15,53 +16,65 @@ namespace PokemonReviewApp.Repository
 
         //GET
 
-        public Review GetReview(int reviewId)
+        public async Task<Review?> GetReviewAsync(int reviewId)
         {
-            return context.Reviews.FirstOrDefault(r => r.Id == reviewId);
+            return await context.Reviews
+                                .AsNoTracking().FirstOrDefaultAsync(r => r.Id == reviewId);
         }
 
-        public ICollection<Review> GetReviews()
+        public async Task<List<Review>> GetReviewsAsync()
         {
-            return context.Reviews.ToList();
+            return await context.Reviews
+                                .AsNoTracking().ToListAsync();
         }
 
-        public ICollection<Review> GetReviewsOfPokemon(int pokeId)
+        public async Task<List<Review>> GetReviewsOfPokemonAsync(int pokeId)
         {
-            return context.Reviews.Where(r => r.PokemonId  == pokeId).ToList();
+            return await context.Reviews
+                                .AsNoTracking().Where(r => r.PokemonId  == pokeId).ToListAsync();
         }
 
-        public bool ReviewExists(int reviewId)
+        public async Task<bool> ReviewExistsAsync(int reviewId)
         {
-            return context.Reviews.Any(r => r.Id == reviewId);
+            return await context.Reviews
+                                .AsNoTracking().AnyAsync(r => r.Id == reviewId);
+        }
+
+        public async Task<bool> ReviewExistsByReviewerAsync(int pokemonId, int reviewerId)
+        {
+
+            return await context.Reviews
+                                 .AsNoTracking()
+                                 .AnyAsync(r => r.PokemonId == pokemonId && r.ReviewerId == reviewerId);
         }
 
         //POST
-        public bool CreateReview(Review review)
+        public async Task<bool> CreateReviewAsync(Review review)
         {
-            context.Add(review);
-            return Save();
+            await context.Reviews.AddAsync(review);
+            return await SaveAsync();
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            var saved = context.SaveChanges();
+            var saved = await context.SaveChangesAsync();
             return saved > 0;
         }
 
 
         //PUT
-        public bool UpdateReview(Review review)
+        public async Task<bool> UpdateReviewAsync(Review review)
         {
-            context.Update(review);
-            return Save();
+            context.Reviews.Update(review);
+            return await SaveAsync();
 
         }
 
         //DELETE 
-        public bool DeleteReview(Review review)
+        public async Task<bool> DeleteReviewAsync(Review review)
         {
-            context.Remove(review);
-            return Save();
+            context.Reviews.Remove(review);
+            return await SaveAsync();
         }
     }
 }

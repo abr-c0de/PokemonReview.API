@@ -5,10 +5,11 @@ using PokemonReviewApp.Data;
 using PokemonReviewApp.Helper;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Repository;
+using System.Threading.Tasks;
 
 internal class Program
 {
-    private static void Main(string[] args)
+    private static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
 
@@ -48,16 +49,25 @@ internal class Program
 
         if (args.Length == 1 && args[0].ToLower() == "seeddata")
         {
-            SeedData(app);
+            await SeedData(app);
 
-            void SeedData(IHost app)
+            static async Task SeedData(IHost app)
             {
                 var ScopedFactory = app.Services.GetService<IServiceScopeFactory>();
 
                 using (var scope = ScopedFactory?.CreateScope())
                 {
                     var service = scope?.ServiceProvider.GetService<Seed>();
-                    service?.SeedDataContext();
+
+                    if (service != null)
+                    {
+                        await service.SeedDataContextAsync();
+                        Console.WriteLine("Seed completed successfully!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Seed service is null. Check DI registration.");
+                    }
                 }
             }
         }

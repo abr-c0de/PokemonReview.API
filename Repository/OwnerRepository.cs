@@ -1,6 +1,8 @@
-﻿using PokemonReviewApp.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PokemonReviewApp.Data;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
+using System.Diagnostics.Metrics;
 
 namespace PokemonReviewApp.Repository
 {
@@ -15,64 +17,77 @@ namespace PokemonReviewApp.Repository
 
         //GET
 
-        public Owner GetOwner(int ownerId)
+        public async Task<Owner?> GetOwnerAsync(int ownerId)
         {
-            return context.Owners.FirstOrDefault(o => o.Id == ownerId);
+            return await context.Owners
+                                .AsNoTracking().FirstOrDefaultAsync(o => o.Id == ownerId);
         }
 
-        public ICollection<Owner> GetOwnerOfPokemon(int pokeId)
+        public async Task<List<Owner>> GetOwnerOfPokemonAsync(int pokeId)
         {
-            return context.PokemonOwners
+            return await context.PokemonOwners
+                          .AsNoTracking()
                           .Where(p => p.PokemonId == pokeId)
                           .Select(o => o.Owner)
-                          .ToList();
+                          .ToListAsync();
         }
 
-        public ICollection<Owner> GetOwners()
+        public async Task<List<Owner>> GetOwnersAsync()
         {
-            return context.Owners.ToList();
+            return await context.Owners
+                                .AsNoTracking().ToListAsync();
         }
 
-        public ICollection<Pokemon> GetPokemonByOwner(int ownerId)
+        public async Task<List<Pokemon>> GetPokemonByOwnerAsync(int ownerId)
         {
-            return context.PokemonOwners
+            return await context.PokemonOwners
+                          .AsNoTracking()
                           .Where(o => o.OwnerId == ownerId)
                           .Select(p =>  p.Pokemon)
-                          .ToList();
+                          .ToListAsync();
         }
 
-        public bool OwnerExist(int ownerId)
+        public async Task<bool> OwnerExistAsync(int ownerId)
         {
-            return context.Owners.Any(o => o.Id == ownerId);
+            return await context.Owners
+                                .AsNoTracking().AnyAsync(o => o.Id == ownerId);
+        }
+
+        public async Task<bool> OwnerExistByNameAsync(string normalizedName)
+        {
+            return await context.Owners
+                                .AsNoTracking()
+                                .AnyAsync(o => o.Name != null && o.Name.Trim().ToUpper() == normalizedName);
         }
 
 
         //POST
-        public bool CreateOwner(Owner owner)
+        public async Task<bool> CreateOwnerAsync(Owner owner)
         {
-            context.Add(owner);
-            return Save();
+            await context.Owners.AddAsync(owner);
+            return await SaveAsync();
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            var saved = context.SaveChanges();
+            var saved = await context.SaveChangesAsync();
             return saved > 0;
         }
 
 
         //PUT
-        public bool UpdateOwner(Owner owner)
+        public async Task<bool> UpdateOwnerAsync(Owner owner)
         {
-            context.Update(owner);
-            return Save();
+            context.Owners.Update(owner);
+            return await SaveAsync();
         }
 
         //DELETE 
-        public bool DeleteOwner(Owner owner)
+        public async Task<bool> DeleteOwnerAsync(Owner owner)
         {
-            context.Remove(owner);
-            return Save();
+            context.Owners.Attach(owner);
+            context.Owners.Remove(owner);
+            return await SaveAsync();
         }
     }
 }

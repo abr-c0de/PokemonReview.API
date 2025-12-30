@@ -32,7 +32,8 @@ namespace PokemonReviewApp.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -49,7 +50,8 @@ namespace PokemonReviewApp.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -69,11 +71,13 @@ namespace PokemonReviewApp.Migrations
 
                     b.Property<string>("Gym")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(60)
+                        .HasColumnType("nvarchar(60)");
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -95,7 +99,8 @@ namespace PokemonReviewApp.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -144,24 +149,27 @@ namespace PokemonReviewApp.Migrations
                         .HasColumnType("int");
 
                     b.Property<decimal>("Rating")
-                        .HasColumnType("decimal(18,2)");
+                        .HasColumnType("decimal(3,1)");
 
                     b.Property<int>("ReviewerId")
                         .HasColumnType("int");
 
                     b.Property<string>("Text")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(600)
+                        .HasColumnType("nvarchar(600)");
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(76)
+                        .HasColumnType("nvarchar(76)");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("PokemonId");
-
                     b.HasIndex("ReviewerId");
+
+                    b.HasIndex("PokemonId", "ReviewerId")
+                        .IsUnique();
 
                     b.ToTable("Reviews");
                 });
@@ -176,11 +184,13 @@ namespace PokemonReviewApp.Migrations
 
                     b.Property<string>("FirstName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("LastName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -203,13 +213,13 @@ namespace PokemonReviewApp.Migrations
                     b.HasOne("PokemonReviewApp.Models.Category", "Category")
                         .WithMany("PokemonCategories")
                         .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("PokemonReviewApp.Models.Pokemon", "Pokemon")
                         .WithMany("PokemonCategories")
                         .HasForeignKey("PokemonId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Category");
@@ -222,13 +232,13 @@ namespace PokemonReviewApp.Migrations
                     b.HasOne("PokemonReviewApp.Models.Owner", "Owner")
                         .WithMany("PokemonOwners")
                         .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("PokemonReviewApp.Models.Pokemon", "Pokemon")
                         .WithMany("PokemonOwners")
                         .HasForeignKey("PokemonId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Owner");
@@ -241,13 +251,13 @@ namespace PokemonReviewApp.Migrations
                     b.HasOne("PokemonReviewApp.Models.Pokemon", "Pokemon")
                         .WithMany("Reviews")
                         .HasForeignKey("PokemonId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("PokemonReviewApp.Models.Reviewer", "Reviewer")
                         .WithMany("Reviews")
                         .HasForeignKey("ReviewerId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Pokemon");

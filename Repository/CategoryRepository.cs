@@ -1,4 +1,5 @@
-﻿using PokemonReviewApp.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PokemonReviewApp.Data;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
 
@@ -15,56 +16,70 @@ namespace PokemonReviewApp.Repository
 
 
         //GET Methods
-        public bool CategoryExists(int id)
+        public async Task<bool> CategoryExistsAsync(int id)
         {
-            return _context.Categories.Any(c => c.Id == id);
+            return await _context.Categories
+                                 .AsNoTracking()
+                                 .AnyAsync(c => c.Id == id);
         }
 
-        public ICollection<Category> GetCategories()
+        public async Task<List<Category>> GetCategoriesAsync()
         {
-            return _context.Categories.ToList();
+            return await _context.Categories
+                                 .AsNoTracking()
+                                 .ToListAsync();
         }
 
-        public Category GetCategory(int id)
+        public async Task<Category?> GetCategoryAsync(int id)
         {
-            return _context.Categories.FirstOrDefault(c => c.Id == id);
+            return await _context.Categories.AsNoTracking()
+                                            .FirstOrDefaultAsync(c => c.Id == id);
         }
 
-        public ICollection<Pokemon> GetPokemonsByCategory(int categoryId)
+        public async Task<List<Pokemon>> GetPokemonsByCategoryAsync(int categoryId)
         {
-            return _context.PokemonCategories
+            return await _context.PokemonCategories
+                           .AsNoTracking()
                            .Where(c => c.CategoryId == categoryId)
-                           .Select(p  => p.Pokemon).ToList();
+                           .Select(p  => p.Pokemon).ToListAsync();
+        }
+
+        public async Task<bool> CategoryExistByNameAsync(string normalizedName)
+        {
+            return await _context.Categories
+                                 .AsNoTracking()
+                                 .AnyAsync(c => c.Name.Trim().ToUpper() == normalizedName);
         }
 
 
         //POST Methods
-        public bool CreateCategory(Category category)
+        public async Task<bool> CreateCategoryAsync(Category category)
         {
-            _context.Add(category);
+            await _context.Categories.AddAsync(category);
            
-            return Save();
+            return await SaveAsync();
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-           var saved = _context.SaveChanges();
+           var saved = await _context.SaveChangesAsync();
            return saved > 0;
         }
 
         //PUT Methods
-        public bool UpdateCategory(Category category)
+        public async Task<bool> UpdateCategoryAsync(Category category)
         {
-            _context.Update(category);
-            return Save();
+            _context.Categories.Update(category);
+            return await SaveAsync();
         }
 
 
         //DELETE Methods
-        public bool DeleteCategory(Category category)
+        public async Task<bool> DeleteCategoryAsync(Category category)
         {
-            _context.Remove(category);
-            return Save();
+            _context.Categories.Attach(category);
+            _context.Categories.Remove(category);
+            return await SaveAsync();
         }
     }
 }

@@ -26,13 +26,13 @@ namespace PokemonReviewApp.Controllers
         //GET
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public ActionResult<IEnumerable<CategoryDto>> GetCategories()
+        public async Task<ActionResult<IEnumerable<CategoryDto>>> GetCategories()
         {
 
-            var categoriesDb = _categoryRepository.GetCategories();
+            var categoriesDb = await _categoryRepository.GetCategoriesAsync();
 
-            if (categoriesDb == null || !categoriesDb.Any()) return NoContent();
+            if (!categoriesDb.Any())
+                    return Ok(new List<CategoryDto>());
 
             var categories = _mapper.Map<List<CategoryDto>>(categoriesDb);
 
@@ -42,12 +42,13 @@ namespace PokemonReviewApp.Controllers
         [HttpGet("{categoryId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<CategoryDto> GetCategory(int categoryId)
+        public async Task<ActionResult<CategoryDto>> GetCategory(int categoryId)
         {
 
-            var category = _categoryRepository.GetCategory(categoryId);
+            var category = await _categoryRepository.GetCategoryAsync(categoryId);
 
-            if( category == null ) return NotFound();
+            if( category == null )
+                return NotFound();
 
             var mappedCategory = _mapper.Map<CategoryDto>(category);
 
@@ -55,14 +56,15 @@ namespace PokemonReviewApp.Controllers
 
         }
 
-        [HttpGet("/pokeByCategory/{categoryId}")]
+        [HttpGet("pokemon/{categoryId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<PokemonDto>> GetPokemonByCategoryId (int categoryId)
+        public async Task<ActionResult<IEnumerable<PokemonDto>>> GetPokemonByCategoryId (int categoryId)
         {
-            if (!_categoryRepository.CategoryExists(categoryId)) return NotFound();
+            if (!await _categoryRepository.CategoryExistsAsync(categoryId))
+                return Ok(new List<PokemonDto>());
             
-            var pokemons = _mapper.Map<List<PokemonDto>>(_categoryRepository.GetPokemonsByCategory(categoryId));
+            var pokemons = _mapper.Map<List<PokemonDto>>(await _categoryRepository.GetPokemonsByCategoryAsync(categoryId));
 
             return Ok(pokemons);
         }
@@ -73,29 +75,34 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult CreateCategory([FromBody] CategoryDto categoryCreate)
+        public async Task<IActionResult> CreateCategory([FromBody] CategoryCreateDto categoryCreate)
         {
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var normalizedName = categoryCreate.Name.Trim().ToUpper();
+            if (categoryCreate == null)
+                return BadRequest("Category data is required");
 
-            var existingCategory = _categoryRepository.GetCategories()
-                                                      .FirstOrDefault(c => c.Name.Trim().ToUpper() == normalizedName);
+            if (string.IsNullOrWhiteSpace(categoryCreate.Name))
+                return BadRequest("Category name is required.");
 
-            if(existingCategory != null) return Conflict("Category already exists. ");
+            var existingCategory = await _categoryRepository.CategoryExistByNameAsync(categoryCreate.Name.Trim().ToUpper());
+
+            if(existingCategory) 
+                return Conflict("Category already exists. ");
 
             var mappedCategory = _mapper.Map<Category>(categoryCreate);
 
-            var created = _categoryRepository.CreateCategory(mappedCategory);
+            var created = await _categoryRepository.CreateCategoryAsync(mappedCategory);
 
-            if (!created) return StatusCode(500, "Something went wrong while saving. ");
+            if (!created)
+                return StatusCode(500, "Something went wrong while saving. ");
 
             var responseDto = _mapper.Map<CategoryDto>(mappedCategory);
 
             return CreatedAtAction(
-                      nameof(GetCategories),
+                      nameof(GetCategory),
                       new { id = mappedCategory.Id },
                       responseDto
              );
@@ -107,7 +114,7 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult UpdateCategory(int categoryId, [FromBody]CategoryDto updatedCategory)
+        public async Task<IActionResult> UpdateCategory(int categoryId, [FromBody]CategoryDto updatedCategory)
         {
             if (updatedCategory == null)
                 return BadRequest("Category data is required");
@@ -118,11 +125,11 @@ namespace PokemonReviewApp.Controllers
             if(categoryId != updatedCategory.Id)
                 return BadRequest("Route ID and body ID do not match");
 
-            if (!_categoryRepository.CategoryExists(categoryId))
+            if (!await _categoryRepository.CategoryExistsAsync(categoryId))
                 return NotFound();
             var mappedCategory = _mapper.Map<Category>(updatedCategory);
 
-            if (!_categoryRepository.UpdateCategory(mappedCategory)) return StatusCode(500, "Something went wrong while saving");
+            if (!await _categoryRepository.UpdateCategoryAsync(mappedCategory)) return StatusCode(500, "Something went wrong while saving");
 
             return NoContent();
         }
@@ -132,14 +139,15 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult DeleteCategory(int categoryId)
+        public async Task<IActionResult> DeleteCategory(int categoryId)
         {
 
-            var categoryToDelete = _categoryRepository.GetCategory(categoryId);
+            var categoryToDelete = await _categoryRepository.GetCategoryAsync(categoryId);
 
-            if (categoryToDelete == null) return NotFound(); 
+            if (categoryToDelete == null)
+                return NotFound(); 
 
-            if (!_categoryRepository.DeleteCategory(categoryToDelete))
+            if (!await _categoryRepository.DeleteCategoryAsync(categoryToDelete))
                 return StatusCode(500, "Something went wrong while deleting");
 
             return NoContent();

@@ -34,29 +34,30 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult AddPokemonCategory([FromBody] PokemonCategoryDto pokemonCategoryCreate)
+        public async Task<IActionResult> AddPokemonCategory([FromBody] PokemonCategoryDto pokemonCategoryCreate)
         {
             if(!ModelState.IsValid)
                return BadRequest(ModelState);
 
-            var pokemonExists = pokemonRepository.GetPokemon(pokemonCategoryCreate.PokemonId);
-            var categoryExists = categoryRepository.GetCategory(pokemonCategoryCreate.CategoryId);
+            var pokemonExists = await pokemonRepository.GetPokemonAsync(pokemonCategoryCreate.PokemonId);
+            var categoryExists = await categoryRepository.GetCategoryAsync(pokemonCategoryCreate.CategoryId);
 
-            if(pokemonExists == null || categoryExists == null ) return NotFound(new {message = "Pokemon or Category not found" });
+            if(pokemonExists == null || categoryExists == null )
+                return NotFound(new {message = "Pokemon or Category not found" });
 
-            if(pokemonCategoryRepository.Exist(pokemonCategoryCreate.PokemonId, pokemonCategoryCreate.CategoryId))
+            if(await pokemonCategoryRepository.ExistAsync(pokemonCategoryCreate.PokemonId, pokemonCategoryCreate.CategoryId))
             {
                 return Conflict(new { message = "Relation already exists" });
             }
 
             var mappedPokemonCategory = mapper.Map<PokemonCategory>(pokemonCategoryCreate);
 
-            if (!pokemonCategoryRepository.AddPokemonCategory(mappedPokemonCategory))
+            if (!await pokemonCategoryRepository.AddPokemonCategoryAsync(mappedPokemonCategory))
             {
                 return StatusCode(500, new {message = "Failed to save" });
             }
 
-            return Ok("pokemon linked to category successfully.");
+            return Ok(new { message = "pokemon linked to category successfully." });
         }
     }
 }

@@ -34,29 +34,30 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public IActionResult AddPokemonOwner([FromBody] PokemonOwnersDto pokemonOwnerCreate)
+        public async Task<IActionResult> AddPokemonOwner([FromBody] PokemonOwnersDto pokemonOwnerCreate)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var pokemonExists = pokemonRepository.GetPokemon(pokemonOwnerCreate.PokemonId);
-            var ownerExists = ownerRepository.GetOwner(pokemonOwnerCreate.OwnerId);
+            var pokemonExists = await pokemonRepository.GetPokemonAsync(pokemonOwnerCreate.PokemonId);
+            var ownerExists = await ownerRepository.GetOwnerAsync(pokemonOwnerCreate.OwnerId);
 
-            if (pokemonExists == null || ownerExists == null) return NotFound(new { message = "Pokemon or Owner not found" });
+            if (pokemonExists == null || ownerExists == null)
+                return NotFound(new { message = "Pokemon or Owner not found" });
 
-            if (pokemonOwnersRepository.Exist(pokemonOwnerCreate.PokemonId, pokemonOwnerCreate.OwnerId))
+            if (await pokemonOwnersRepository.ExistAsync(pokemonOwnerCreate.PokemonId, pokemonOwnerCreate.OwnerId))
             {
                 return Conflict(new { message = "Relation already exists" });
             }
 
             var mappedPokemonOwner = mapper.Map<PokemonOwners>(pokemonOwnerCreate);
 
-            if (!pokemonOwnersRepository.AddPokemonOwner(mappedPokemonOwner))
+            if (!await pokemonOwnersRepository.AddPokemonOwnerAsync(mappedPokemonOwner))
             {
                 return StatusCode(500, new { message = "Failed to save" });
             }
 
-            return Ok("pokemon and owner linked successfully.");
+            return Ok(new { message = "Pokemon and owner linked successfully." });
         }
     }
 }

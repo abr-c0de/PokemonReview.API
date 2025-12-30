@@ -27,12 +27,13 @@ namespace PokemonReviewApp.Controllers
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public ActionResult<IEnumerable<ReviewerDto>> GetReviewers()
+        public async Task<ActionResult<IEnumerable<ReviewerDto>>> GetReviewers()
         {
 
-            var reviewersDb = reviewerRepository.GetReviewers();
+            var reviewersDb = await reviewerRepository.GetReviewersAsync();
 
-            if (reviewersDb == null || !reviewersDb.Any()) return NoContent();
+            if (!reviewersDb.Any())
+                return Ok(new List<ReviewerDto>());
 
             var reviewers = mapper.Map<List<ReviewerDto>>(reviewersDb);
 
@@ -42,12 +43,13 @@ namespace PokemonReviewApp.Controllers
         [HttpGet("{reviewerId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<ReviewerDto> GetReviewer(int reviewerId)
+        public async Task<ActionResult<ReviewerDto>> GetReviewer(int reviewerId)
         {
 
-            var reviewerDb = reviewerRepository.GetReviewer(reviewerId);
+            var reviewerDb = await reviewerRepository.GetReviewerAsync(reviewerId);
 
-            if (reviewerDb == null) return NotFound();
+            if (reviewerDb == null)
+                return NotFound();
 
             var reviewer = mapper.Map<ReviewerDto>(reviewerDb);
 
@@ -55,14 +57,15 @@ namespace PokemonReviewApp.Controllers
 
         }
 
-        [HttpGet("{reviewerId}/ReviewsByReviewer")]
+        [HttpGet("{reviewerId}/reviews")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<ReviewDto>> GetReviewsByReviewer(int reviewerId)
+        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviewsByReviewer(int reviewerId)
         {
-            var reviewsDb = reviewerRepository.GetReviewsByReviewer(reviewerId);
+            var reviewsDb = await reviewerRepository.GetReviewsByReviewerAsync(reviewerId);
 
-            if (reviewsDb == null || !reviewsDb.Any()) return NotFound();
+            if (!reviewsDb.Any())
+                return Ok(new List<ReviewDto>());
 
             var reviews = mapper.Map<List<ReviewDto>>(reviewsDb);
 
@@ -75,24 +78,25 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult CreateReviewer([FromBody] ReviewerDto reviewerCreate)
+        public async Task<IActionResult> CreateReviewer([FromBody] ReviewerCreateDto reviewerCreate)
         {
+            if (reviewerCreate == null)
+                return BadRequest("Reviewer data is required");
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var normalizedName = reviewerCreate.FirstName.Trim().ToUpper();
+            var existingReviewer = await reviewerRepository.ReviewerExistByNameAsync(reviewerCreate.LastName.Trim().ToUpper());
 
-            var existingReviewer = reviewerRepository.GetReviewers()
-                                               .FirstOrDefault(r => r.FirstName.ToUpper() == normalizedName);
-
-            if (existingReviewer != null) return Conflict(" Reviewer already exists. ");
+            if (existingReviewer)
+                return Conflict(" Reviewer already exists. ");
 
             var mappedReviewer = mapper.Map<Reviewer>(reviewerCreate);
 
-            var created = reviewerRepository.CreateReviewer(mappedReviewer);
+            var created = await reviewerRepository.CreateReviewerAsync(mappedReviewer);
 
-            if (!created) return StatusCode(500, "Something went wrong while saving. ");
+            if (!created)
+                return StatusCode(500, "Something went wrong while saving. ");
 
             var responseDto = mapper.Map<ReviewerDto>(mappedReviewer);
 
@@ -108,7 +112,7 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult UpdateReviewer(int reviewerId, [FromBody] ReviewerDto updatedReviewer)
+        public async Task<IActionResult> UpdateReviewer(int reviewerId, [FromBody] ReviewerDto updatedReviewer)
         {
             if (updatedReviewer == null)
                 return BadRequest("Reviewer data is required");
@@ -119,11 +123,13 @@ namespace PokemonReviewApp.Controllers
             if (reviewerId != updatedReviewer.Id)
                 return BadRequest("Route ID and body ID do not match");
 
-            if (!reviewerRepository.ReviewerExists(reviewerId))
+            if (!await reviewerRepository.ReviewerExistsAsync(reviewerId))
                 return NotFound();
+
             var mappedReviewer = mapper.Map<Reviewer>(updatedReviewer);
 
-            if (!reviewerRepository.UpdateReviewer(mappedReviewer)) return StatusCode(500, "Something went wrong while saving");
+            if (!await reviewerRepository.UpdateReviewerAsync(mappedReviewer))
+                return StatusCode(500, "Something went wrong while saving");
 
             return NoContent();
         }
@@ -133,14 +139,15 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult DeleteReviewer(int reviewerId)
+        public async Task<IActionResult> DeleteReviewer(int reviewerId)
         {
 
-            var ReviewerToDelete = reviewerRepository.GetReviewer(reviewerId);
+            var reviewerToDelete = await reviewerRepository.GetReviewerAsync(reviewerId);
 
-            if (ReviewerToDelete == null) return NotFound();
+            if (reviewerToDelete == null)
+                return NotFound();
 
-            if (!reviewerRepository.DeleteReviewer(ReviewerToDelete))
+            if (!await reviewerRepository.DeleteReviewerAsync(reviewerToDelete))
                 return StatusCode(500, "Something went wrong while deleting");
 
             return NoContent();

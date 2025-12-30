@@ -17,64 +17,78 @@ namespace PokemonReviewApp.Repository
 
         //GET
 
-        public bool CountryExist(int countryId)
+        public async Task<bool> CountryExistAsync(int countryId)
         {
-            return context.Countries.Any(c => c.Id == countryId);
+            return await context.Countries
+                                .AsNoTracking().AnyAsync(c => c.Id == countryId);
         }
 
-        public ICollection<Country> GetCountries()
+        public async Task<List<Country>> GetCountriesAsync()
         {
-            return context.Countries.ToList();
+            return await context.Countries
+                                .AsNoTracking().ToListAsync();
         }
 
-        public Country GetCountry(int id)
+        public async Task<Country?> GetCountryAsync(int id)
         {
-            return context.Countries.FirstOrDefault(c => c.Id == id);
+            return await context.Countries
+                                .AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
         }
 
-        public Country GetCountryByOwner(int ownerId)
+        public async Task<Country?> GetCountryByOwnerAsync(int ownerId)
         {
-            return context.Owners
+            return await context.Owners
+                          .AsNoTracking()
+                          .Include(o => o.Country)
                           .Where(o => o.Id == ownerId)
-                          .Select(c => c.Country)
-                          .FirstOrDefault();
+                          .Select(o => o.Country)
+                          .FirstOrDefaultAsync();
         }
 
-        public ICollection<Owner> GetOwnersFromCountry(int countryId)
+        public async Task<List<Owner>> GetOwnersFromCountryAsync(int countryId)
         {
-            return context.Owners
-                          .Where(c => c.CountryId == countryId)
-                          .ToList();
+            return await context.Owners
+                          .AsNoTracking()
+                          .Where(o => o.CountryId == countryId)
+                          .ToListAsync();
+        }
+
+        public async Task<bool> CountryExistByNameAsync(string normalizedName)
+        {
+            return await context.Countries
+                                .AsNoTracking()
+                                .AnyAsync(c => c.Name != null && c.Name.Trim().ToUpper() == normalizedName);
         }
 
 
 
         //POST
-        public bool CreateCountry(Country country)
+        public async Task<bool> CreateCountryAsync(Country country)
         {
-            context.Add(country);
-            return Save();
+            await context.Countries.AddAsync(country);
+            return await SaveAsync();
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            var saved = context.SaveChanges();
+            var saved = await context.SaveChangesAsync();
             return saved > 0;
         }
 
 
         //PUT
-        public bool UpdateCountry(Country country)
+        public async Task<bool> UpdateCountryAsync(Country country)
         {
-            context.Update(country);
-            return Save();
+            context.Countries.Update(country);
+            return await SaveAsync();
         }
 
         //DELETE 
-        public bool DeleteCountry(Country country)
+        public async Task<bool> DeleteCountryAsync(Country country)
         {
-            context.Remove(country);
-            return Save();
+            context.Countries.Attach(country);
+            context.Countries.Remove(country);
+            return await SaveAsync();
         }
     }
 }

@@ -4,8 +4,7 @@ namespace PokemonReviewApp.Interfaces
 {
     public interface IPokemonCategoryRepository
     {
-        bool AddPokemonCategory(PokemonCategory P_C);
-        bool Exist(int PokemonId, int CategoryId);
-        bool Save();
+        Task<bool> AddPokemonCategoryAsync(PokemonCategory P_C);
+        Task<bool> ExistAsync(int PokemonId, int CategoryId);
     }
 }

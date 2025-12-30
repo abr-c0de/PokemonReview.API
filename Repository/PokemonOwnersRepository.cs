@@ -1,4 +1,5 @@
-﻿using PokemonReviewApp.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PokemonReviewApp.Data;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Models;
 
@@ -13,21 +14,22 @@ namespace PokemonReviewApp.Repository
         }
 
 
-        public bool AddPokemonOwner(PokemonOwners P_O)
+        public async Task<bool> AddPokemonOwnerAsync(PokemonOwners P_O)
         {
-            context.Add(P_O);
-            return Save();
+            await context.PokemonOwners.AddAsync(P_O);
+            return await SaveAsync();
         }
 
-        public bool Exist(int PokemonId, int OwnerId)
+        public async Task<bool> ExistAsync(int PokemonId, int OwnerId)
         {
-            return context.PokemonOwners
-                          .Any(po => po.PokemonId == PokemonId && po.OwnerId == OwnerId);
+            return await context.PokemonOwners
+                                .AsNoTracking()
+                                .AnyAsync(po => po.PokemonId == PokemonId && po.OwnerId == OwnerId);
         }
 
-        public bool Save()
+        public async Task<bool> SaveAsync()
         {
-            var saved = context.SaveChanges();
+            var saved = await context.SaveChangesAsync();
             return saved > 0;
         }
     }

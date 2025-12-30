@@ -26,12 +26,13 @@ namespace PokemonReviewApp.Controllers
         [HttpGet]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public ActionResult<IEnumerable<ReviewDto>> GetReviews()
+        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviews()
         {
 
-            var reviewsDb = reviewRepository.GetReviews();
+            var reviewsDb = await reviewRepository.GetReviewsAsync();
 
-            if (reviewsDb == null || !reviewsDb.Any()) return NoContent();
+            if (!reviewsDb.Any())
+                return Ok(new List<ReviewDto>());
 
             var reviews = mapper.Map<List<ReviewDto>>(reviewsDb);
 
@@ -41,12 +42,13 @@ namespace PokemonReviewApp.Controllers
         [HttpGet("{reviewId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<ReviewDto> GetReview(int reviewId)
+        public async Task<ActionResult<ReviewDto>> GetReview(int reviewId)
         {
 
-            var reviewDb = reviewRepository.GetReview(reviewId);
+            var reviewDb = await reviewRepository.GetReviewAsync(reviewId);
 
-            if (reviewDb == null) return NotFound();
+            if (reviewDb == null)
+                return NotFound();
 
             var review = mapper.Map<ReviewDto>(reviewDb);
 
@@ -57,11 +59,12 @@ namespace PokemonReviewApp.Controllers
         [HttpGet("{pokemonId}/ReviewsByPokemon")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public ActionResult<IEnumerable<ReviewDto>> GetReviewsOfPokemon(int pokemonId)
+        public async Task<ActionResult<IEnumerable<ReviewDto>>> GetReviewsOfPokemon(int pokemonId)
         {
-            var reviewsDb = reviewRepository.GetReviewsOfPokemon(pokemonId);
+            var reviewsDb = await reviewRepository.GetReviewsOfPokemonAsync(pokemonId);
 
-            if (reviewsDb == null || !reviewsDb.Any()) return NoContent();
+            if (!reviewsDb.Any())
+                return Ok(new List<ReviewDto>());
 
             var reviews = mapper.Map<List<ReviewDto>>(reviewsDb);
 
@@ -74,24 +77,25 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status409Conflict)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult CreateReview([FromBody] ReviewCreateDto reviewCreate)
+        public async Task<IActionResult> CreateReview([FromBody] ReviewCreateDto reviewCreate)
         {
+            if (reviewCreate == null)
+                return BadRequest("Review data is required");
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
 
-            var normalizedName = reviewCreate.Title.Trim().ToUpper();
+            var existingReview = await reviewRepository.ReviewExistsByReviewerAsync(reviewCreate.PokemonId, reviewCreate.ReviewerId);
 
-            var existingReview = reviewRepository.GetReviews()
-                                               .FirstOrDefault(r => r.Title.ToUpper() == normalizedName);
-
-            if (existingReview != null) return Conflict(" Review already exists. ");
+            if (existingReview)
+                return Conflict(" Review already exists. ");
 
             var mappedReview = mapper.Map<Review>(reviewCreate);
 
-            var created = reviewRepository.CreateReview(mappedReview);
+            var created = await reviewRepository.CreateReviewAsync(mappedReview);
 
-            if (!created) return StatusCode(500, "Something went wrong while saving. ");
+            if (!created)
+                return StatusCode(500, "Something went wrong while saving. ");
 
             var responseDto = mapper.Map<ReviewDto>(mappedReview);
 
@@ -108,7 +112,7 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult UpdateReview(int reviewId, [FromBody] ReviewUpdateDto updatedReview)
+        public async Task<IActionResult> UpdateReview(int reviewId, [FromBody] ReviewDto updatedReview)
         {
             if (updatedReview == null)
                 return BadRequest("Review data is required");
@@ -119,11 +123,13 @@ namespace PokemonReviewApp.Controllers
             if (reviewId != updatedReview.Id)
                 return BadRequest("Route ID and body ID do not match");
 
-            if (!reviewRepository.ReviewExists(reviewId))
+            if (!await reviewRepository.ReviewExistsAsync(reviewId))
                 return NotFound();
+
             var mappedReview = mapper.Map<Review>(updatedReview);
 
-            if (!reviewRepository.UpdateReview(mappedReview)) return StatusCode(500, "Something went wrong while saving");
+            if (!await reviewRepository.UpdateReviewAsync(mappedReview))
+                return StatusCode(500, "Something went wrong while saving");
 
             return NoContent();
         }
@@ -133,14 +139,15 @@ namespace PokemonReviewApp.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult DeleteReview(int reviewId)
+        public async Task<IActionResult> DeleteReview(int reviewId)
         {
 
-            var ReviewToDelete = reviewRepository.GetReview(reviewId);
+            var ReviewToDelete = await reviewRepository.GetReviewAsync(reviewId);
 
-            if (ReviewToDelete == null) return NotFound();
+            if (ReviewToDelete == null)
+                return NotFound();
 
-            if (!reviewRepository.DeleteReview(ReviewToDelete))
+            if (!await reviewRepository.DeleteReviewAsync(ReviewToDelete))
                 return StatusCode(500, "Something went wrong while deleting");
 
             return NoContent();
