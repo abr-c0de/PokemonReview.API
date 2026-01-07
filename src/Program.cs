@@ -1,11 +1,9 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using PokemonReviewApp;
 using PokemonReviewApp.Data;
 using PokemonReviewApp.Helper;
 using PokemonReviewApp.Interfaces;
 using PokemonReviewApp.Repository;
-using System.Threading.Tasks;
 
 internal class Program
 {
